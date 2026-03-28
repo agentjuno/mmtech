@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { desc } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { deals } from "@/lib/db/schema";
+import { deals, opportunities } from "@/lib/db/schema";
 
 const STATUS_LABELS: Record<string, string> = {
   sourcing: "Sourcing",
@@ -29,7 +29,21 @@ function formatCurrency(value: string | null) {
 }
 
 export default async function DealsPage() {
-  const rows = await db.select().from(deals).orderBy(desc(deals.createdAt));
+  const rows = await db
+    .select({
+      id: deals.id,
+      title: deals.title,
+      category: deals.category,
+      askingPrice: deals.askingPrice,
+      estimatedValue: deals.estimatedValue,
+      status: deals.status,
+      createdAt: deals.createdAt,
+      opportunityCount: sql<number>`cast(count(${opportunities.id}) as int)`,
+    })
+    .from(deals)
+    .leftJoin(opportunities, eq(opportunities.dealId, deals.id))
+    .groupBy(deals.id)
+    .orderBy(desc(deals.createdAt));
 
   return (
     <div className="px-8 py-8 space-y-6">
@@ -80,6 +94,9 @@ export default async function DealsPage() {
                 Est. Value
               </th>
               <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">
+                Opps
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">
                 Status
               </th>
             </tr>
@@ -88,7 +105,7 @@ export default async function DealsPage() {
             {rows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-4 py-12 text-center text-muted-foreground text-sm"
                 >
                   No deals yet.{" "}
@@ -119,6 +136,15 @@ export default async function DealsPage() {
                   </td>
                   <td className="px-4 py-3 font-mono text-muted-foreground">
                     {formatCurrency(deal.estimatedValue)}
+                  </td>
+                  <td className="px-4 py-3">
+                    {deal.opportunityCount > 0 ? (
+                      <span className="text-xs font-mono bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">
+                        {deal.opportunityCount}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span

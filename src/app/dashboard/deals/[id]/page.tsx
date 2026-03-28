@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { deals } from "@/lib/db/schema";
+import { deals, opportunities } from "@/lib/db/schema";
 import { deleteDeal } from "@/app/actions/deals";
+import { deleteOpportunity } from "@/app/actions/opportunities";
 
 const STATUS_LABELS: Record<string, string> = {
   sourcing: "Sourcing",
@@ -40,7 +41,11 @@ export default async function DealDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [deal] = await db.select().from(deals).where(eq(deals.id, id));
+
+  const [[deal], opps] = await Promise.all([
+    db.select().from(deals).where(eq(deals.id, id)),
+    db.select().from(opportunities).where(eq(opportunities.dealId, id)),
+  ]);
 
   if (!deal) notFound();
 
@@ -158,6 +163,83 @@ export default async function DealDetailPage({
             <dd>{formatDate(deal.updatedAt)}</dd>
           </div>
         </dl>
+      </div>
+
+      {/* Opportunities */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Opportunities ({opps.length})
+          </p>
+          <Link
+            href={`/dashboard/deals/${deal.id}/opportunities/new`}
+            className="text-xs text-primary hover:underline"
+          >
+            + Add opportunity
+          </Link>
+        </div>
+
+        {opps.length === 0 ? (
+          <div className="rounded-lg border border-border p-6 text-center text-sm text-muted-foreground">
+            No opportunities linked to this deal.{" "}
+            <Link
+              href={`/dashboard/deals/${deal.id}/opportunities/new`}
+              className="text-primary hover:underline"
+            >
+              Add one →
+            </Link>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+            {opps.map((opp) => {
+              async function handleDeleteOpp() {
+                "use server";
+                await deleteOpportunity(opp.id, id);
+              }
+
+              return (
+                <div key={opp.id} className="p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      {opp.buyerInfo && (
+                        <p className="text-sm font-medium truncate">{opp.buyerInfo}</p>
+                      )}
+                      {opp.notes && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">{opp.notes}</p>
+                      )}
+                      <div className="flex items-center gap-3">
+                        {opp.margin && (
+                          <span className="text-xs font-mono bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-full">
+                            {parseFloat(opp.margin).toFixed(1)}% margin
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(opp.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Link
+                        href={`/dashboard/deals/${deal.id}/opportunities/${opp.id}/edit`}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        Edit
+                      </Link>
+                      <form action={handleDeleteOpp}>
+                        <button
+                          type="submit"
+                          className="text-xs text-red-500 hover:text-red-600 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
