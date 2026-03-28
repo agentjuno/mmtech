@@ -99,12 +99,20 @@ export default async function DealsPage({
             All sourced and active deals
           </p>
         </div>
-        <Link
-          href="/dashboard/deals/new"
-          className="text-sm bg-primary text-primary-foreground px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
-        >
-          + New deal
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/deals/import"
+            className="text-sm px-4 py-2 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+          >
+            Import CSV
+          </Link>
+          <Link
+            href="/dashboard/deals/new"
+            className="text-sm bg-primary text-primary-foreground px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
+          >
+            + New deal
+          </Link>
+        </div>
       </div>
 
       {/* Search */}
