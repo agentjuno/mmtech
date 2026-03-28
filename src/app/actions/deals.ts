@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { deals } from "@/lib/db/schema";
 
@@ -23,5 +24,37 @@ export async function createDeal(formData: FormData) {
     description: description || null,
   });
 
+  redirect("/dashboard/deals");
+}
+
+export async function updateDeal(id: string, formData: FormData) {
+  const title = formData.get("title") as string;
+  const category = formData.get("category") as string;
+  const askingPrice = formData.get("askingPrice") as string;
+  const estimatedValue = formData.get("estimatedValue") as string;
+  const sourceUrl = formData.get("sourceUrl") as string;
+  const description = formData.get("description") as string;
+  const status = formData.get("status") as string;
+
+  if (!title) throw new Error("Title is required");
+
+  await db
+    .update(deals)
+    .set({
+      title,
+      category: category || null,
+      askingPrice: askingPrice || null,
+      estimatedValue: estimatedValue || null,
+      sourceUrl: sourceUrl || null,
+      description: description || null,
+      status: (status as typeof deals.$inferSelect.status) || "sourcing",
+    })
+    .where(eq(deals.id, id));
+
+  redirect(`/dashboard/deals/${id}`);
+}
+
+export async function deleteDeal(id: string) {
+  await db.delete(deals).where(eq(deals.id, id));
   redirect("/dashboard/deals");
 }
