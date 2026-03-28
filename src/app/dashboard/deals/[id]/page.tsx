@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { deals, opportunities } from "@/lib/db/schema";
 import { deleteDeal } from "@/app/actions/deals";
 import { deleteOpportunity } from "@/app/actions/opportunities";
+import { AnalyzeDeal } from "./AnalyzeDeal";
 
 const STATUS_LABELS: Record<string, string> = {
   sourcing: "Sourcing",
@@ -164,6 +165,9 @@ export default async function DealDetailPage({
           </div>
         </dl>
       </div>
+
+      {/* AI Analysis */}
+      <AnalyzeDeal dealId={deal.id} />
 
       {/* Opportunities */}
       <div className="space-y-3">

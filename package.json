@@ -14,6 +14,7 @@
     "db:seed": "tsx src/lib/db/seed.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^1.2.12",
     "@ai-sdk/react": "^1.2.11",
     "@neondatabase/serverless": "^0.10.4",
     "ai": "^4.3.15",
