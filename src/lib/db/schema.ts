@@ -47,3 +47,4 @@ export const opportunities = pgTable("opportunities", {
 export type Deal = typeof deals.$inferSelect;
 export type NewDeal = typeof deals.$inferInsert;
 export type Opportunity = typeof opportunities.$inferSelect;
+export type NewOpportunity = typeof opportunities.$inferInsert;
