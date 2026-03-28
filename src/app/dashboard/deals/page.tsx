@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, lt, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { deals, opportunities } from "@/lib/db/schema";
 
@@ -23,12 +23,44 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-red-500/10 text-red-500",
 };
 
+const CATEGORIES = ["SaaS", "Domain", "Content", "E-commerce", "Newsletter", "Other"];
+const STATUSES = ["sourcing", "evaluating", "listed", "matched", "in_progress", "completed", "cancelled"];
+
+const PAGE_SIZE = 20;
+
 function formatCurrency(value: string | null) {
   if (!value) return "—";
   return "$" + parseFloat(value).toLocaleString("en-US", { minimumFractionDigits: 0 });
 }
 
-export default async function DealsPage() {
+function buildUrl(params: Record<string, string | undefined>) {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v) p.set(k, v);
+  }
+  const qs = p.toString();
+  return `/dashboard/deals${qs ? `?${qs}` : ""}`;
+}
+
+export default async function DealsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string; category?: string; cursor?: string }>;
+}) {
+  const { q, status, category, cursor } = await searchParams;
+
+  const conditions = [];
+  if (q) conditions.push(ilike(deals.title, `%${q}%`));
+  if (status && STATUSES.includes(status)) {
+    conditions.push(eq(deals.status, status as typeof deals.$inferSelect.status));
+  }
+  if (category && CATEGORIES.includes(category)) {
+    conditions.push(eq(deals.category, category));
+  }
+  if (cursor) {
+    conditions.push(lt(deals.createdAt, new Date(cursor)));
+  }
+
   const rows = await db
     .select({
       id: deals.id,
@@ -42,8 +74,18 @@ export default async function DealsPage() {
     })
     .from(deals)
     .leftJoin(opportunities, eq(opportunities.dealId, deals.id))
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
     .groupBy(deals.id)
-    .orderBy(desc(deals.createdAt));
+    .orderBy(desc(deals.createdAt))
+    .limit(PAGE_SIZE + 1);
+
+  const hasMore = rows.length > PAGE_SIZE;
+  const pageRows = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
+  const nextCursor = hasMore
+    ? pageRows[pageRows.length - 1].createdAt.toISOString()
+    : null;
+
+  const isFiltered = !!(q || status || category || cursor);
 
   return (
     <div className="px-8 py-8 space-y-6">
@@ -62,18 +104,86 @@ export default async function DealsPage() {
         </Link>
       </div>
 
-      {/* Filter bar */}
-      <div className="flex items-center gap-2">
-        {["All", "Sourcing", "Evaluating", "Listed", "Matched", "Completed"].map(
-          (filter) => (
-            <button
-              key={filter}
-              className="text-xs px-3 py-1.5 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors first:bg-secondary first:text-foreground first:border-transparent"
-            >
-              {filter}
-            </button>
-          )
+      {/* Search */}
+      <form method="GET" className="flex items-center gap-2">
+        {status && <input type="hidden" name="status" value={status} />}
+        {category && <input type="hidden" name="category" value={category} />}
+        <input
+          name="q"
+          defaultValue={q ?? ""}
+          placeholder="Search deals by title..."
+          className="flex-1 max-w-sm rounded-md border border-border bg-background px-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+        />
+        <button
+          type="submit"
+          className="text-sm px-3 py-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+        >
+          Search
+        </button>
+        {isFiltered && (
+          <Link
+            href="/dashboard/deals"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Clear filters
+          </Link>
         )}
+      </form>
+
+      {/* Status filter */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            href={buildUrl({ q, category })}
+            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+              !status
+                ? "bg-secondary text-foreground border-transparent"
+                : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+            }`}
+          >
+            All status
+          </Link>
+          {STATUSES.map((s) => (
+            <Link
+              key={s}
+              href={buildUrl({ q, category, status: s })}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                status === s
+                  ? "bg-secondary text-foreground border-transparent"
+                  : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+              }`}
+            >
+              {STATUS_LABELS[s]}
+            </Link>
+          ))}
+        </div>
+
+        {/* Category filter */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            href={buildUrl({ q, status })}
+            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+              !category
+                ? "bg-secondary text-foreground border-transparent"
+                : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+            }`}
+          >
+            All categories
+          </Link>
+          {CATEGORIES.map((c) => (
+            <Link
+              key={c}
+              href={buildUrl({ q, status, category: c })}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                category === c
+                  ? "bg-secondary text-foreground border-transparent"
+                  : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+              }`}
+            >
+              {c}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* Table */}
@@ -102,20 +212,31 @@ export default async function DealsPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {pageRows.length === 0 ? (
               <tr>
                 <td
                   colSpan={6}
                   className="px-4 py-12 text-center text-muted-foreground text-sm"
                 >
-                  No deals yet.{" "}
-                  <Link href="/dashboard/deals/new" className="text-primary hover:underline">
-                    Add one →
-                  </Link>
+                  {isFiltered ? (
+                    <>
+                      No deals match your filters.{" "}
+                      <Link href="/dashboard/deals" className="text-primary hover:underline">
+                        Clear filters →
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      No deals yet.{" "}
+                      <Link href="/dashboard/deals/new" className="text-primary hover:underline">
+                        Add one →
+                      </Link>
+                    </>
+                  )}
                 </td>
               </tr>
             ) : (
-              rows.map((deal) => (
+              pageRows.map((deal) => (
                 <tr
                   key={deal.id}
                   className="border-b border-border last:border-0 hover:bg-secondary/20 transition-colors"
@@ -159,6 +280,32 @@ export default async function DealsPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {(nextCursor || cursor) && (
+        <div className="flex items-center justify-between text-sm">
+          <div>
+            {cursor && (
+              <Link
+                href={buildUrl({ q, status, category })}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                ← First page
+              </Link>
+            )}
+          </div>
+          <div>
+            {nextCursor && (
+              <Link
+                href={buildUrl({ q, status, category, cursor: nextCursor })}
+                className="text-primary hover:underline"
+              >
+                Next page →
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
