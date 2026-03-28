@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { deals, opportunities } from "@/lib/db/schema";
 import { deleteDeal } from "@/app/actions/deals";
@@ -42,9 +43,14 @@ export default async function DealDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const { userId } = await auth();
+
+  const dealCondition = userId
+    ? and(eq(deals.id, id), eq(deals.userId, userId))
+    : eq(deals.id, id);
 
   const [[deal], opps] = await Promise.all([
-    db.select().from(deals).where(eq(deals.id, id)),
+    db.select().from(deals).where(dealCondition),
     db.select().from(opportunities).where(eq(opportunities.dealId, id)),
   ]);
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { opportunities, deals } from "@/lib/db/schema";
 
@@ -8,6 +9,9 @@ function formatDate(date: Date) {
 }
 
 export default async function OpportunitiesPage() {
+  const { userId } = await auth();
+  const userCondition = userId ? eq(deals.userId, userId) : undefined;
+
   const rows = await db
     .select({
       id: opportunities.id,
@@ -21,6 +25,7 @@ export default async function OpportunitiesPage() {
     })
     .from(opportunities)
     .innerJoin(deals, eq(deals.id, opportunities.dealId))
+    .where(userCondition)
     .orderBy(desc(opportunities.createdAt));
 
   return (

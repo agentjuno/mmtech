@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { sql, count } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { deals, opportunities } from "@/lib/db/schema";
 
@@ -40,6 +41,9 @@ function formatCurrency(value: number) {
 }
 
 export default async function DashboardPage() {
+  const { userId } = await auth();
+  const userCondition = userId ? eq(deals.userId, userId) : undefined;
+
   const [aggregates, statusBreakdown, oppCount] = await Promise.all([
     db
       .select({
@@ -49,15 +53,21 @@ export default async function DashboardPage() {
         totalValueDelta: sql<number>`coalesce(sum(cast(estimated_value as numeric) - cast(asking_price as numeric)) filter (where estimated_value is not null and asking_price is not null), 0)`,
         avgMarginPct: sql<number>`coalesce(avg((cast(estimated_value as numeric) - cast(asking_price as numeric)) / nullif(cast(estimated_value as numeric), 0) * 100) filter (where estimated_value is not null and asking_price is not null), 0)`,
       })
-      .from(deals),
+      .from(deals)
+      .where(userCondition),
     db
       .select({
         status: deals.status,
         cnt: sql<number>`cast(count(*) as int)`,
       })
       .from(deals)
+      .where(userCondition)
       .groupBy(deals.status),
-    db.select({ cnt: sql<number>`cast(count(*) as int)` }).from(opportunities),
+    db
+      .select({ cnt: sql<number>`cast(count(*) as int)` })
+      .from(opportunities)
+      .innerJoin(deals, eq(deals.id, opportunities.dealId))
+      .where(userCondition),
   ]);
 
   const agg = aggregates[0];

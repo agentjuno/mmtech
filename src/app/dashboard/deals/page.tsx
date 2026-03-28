@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { and, desc, eq, ilike, lt, sql } from "drizzle-orm";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { deals, opportunities } from "@/lib/db/schema";
 
@@ -47,9 +48,11 @@ export default async function DealsPage({
 }: {
   searchParams: Promise<{ q?: string; status?: string; category?: string; cursor?: string }>;
 }) {
+  const { userId } = await auth();
   const { q, status, category, cursor } = await searchParams;
 
   const conditions = [];
+  if (userId) conditions.push(eq(deals.userId, userId));
   if (q) conditions.push(ilike(deals.title, `%${q}%`));
   if (status && STATUSES.includes(status)) {
     conditions.push(eq(deals.status, status as typeof deals.$inferSelect.status));

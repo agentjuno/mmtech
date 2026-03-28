@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { type ReactNode } from "react";
+import { UserButton } from "@clerk/nextjs";
 
 const navItems = [
   { href: "/dashboard", label: "Overview" },
@@ -28,8 +29,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
-        <div className="px-4 py-4 border-t border-border">
+        <div className="px-4 py-4 border-t border-border flex items-center justify-between">
           <p className="text-xs text-muted-foreground font-mono">beta v0.1</p>
+          <UserButton />
         </div>
       </aside>
 

@@ -19,6 +19,7 @@ export const dealStatusEnum = pgEnum("deal_status", [
 
 export const deals = pgTable("deals", {
   id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id"),
   title: text("title").notNull(),
   description: text("description"),
   category: text("category"),
