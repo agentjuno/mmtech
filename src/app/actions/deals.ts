@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { deals } from "@/lib/db/schema";
+import { matchDeal } from "@/lib/matching";
 
 export async function createDeal(formData: FormData) {
   const { userId } = await auth();
@@ -19,15 +20,21 @@ export async function createDeal(formData: FormData) {
 
   if (!title) throw new Error("Title is required");
 
-  await db.insert(deals).values({
-    userId,
-    title,
-    category: category || null,
-    askingPrice: askingPrice || null,
-    estimatedValue: estimatedValue || null,
-    sourceUrl: sourceUrl || null,
-    description: description || null,
-  });
+  const [inserted] = await db
+    .insert(deals)
+    .values({
+      userId,
+      title,
+      category: category || null,
+      askingPrice: askingPrice || null,
+      estimatedValue: estimatedValue || null,
+      sourceUrl: sourceUrl || null,
+      description: description || null,
+    })
+    .returning({ id: deals.id });
+
+  // Run matching in background (non-blocking)
+  matchDeal(inserted.id).catch(() => {});
 
   redirect("/dashboard/deals");
 }
@@ -58,6 +65,9 @@ export async function updateDeal(id: string, formData: FormData) {
       status: (status as typeof deals.$inferSelect.status) || "sourcing",
     })
     .where(and(eq(deals.id, id), eq(deals.userId, userId)));
+
+  // Re-run matching after status/price changes
+  matchDeal(id).catch(() => {});
 
   redirect(`/dashboard/deals/${id}`);
 }

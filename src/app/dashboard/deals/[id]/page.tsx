@@ -7,6 +7,7 @@ import { deals, opportunities } from "@/lib/db/schema";
 import { deleteDeal } from "@/app/actions/deals";
 import { deleteOpportunity } from "@/app/actions/opportunities";
 import { AnalyzeDeal } from "./AnalyzeDeal";
+import { RunMatching } from "./RunMatching";
 
 const STATUS_LABELS: Record<string, string> = {
   sourcing: "Sourcing",
@@ -181,12 +182,15 @@ export default async function DealDetailPage({
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Opportunities ({opps.length})
           </p>
-          <Link
-            href={`/dashboard/deals/${deal.id}/opportunities/new`}
-            className="text-xs text-primary hover:underline"
-          >
-            + Add opportunity
-          </Link>
+          <div className="flex items-center gap-3">
+            <RunMatching dealId={deal.id} />
+            <Link
+              href={`/dashboard/deals/${deal.id}/opportunities/new`}
+              className="text-xs text-primary hover:underline"
+            >
+              + Add
+            </Link>
+          </div>
         </div>
 
         {opps.length === 0 ? (
@@ -222,6 +226,14 @@ export default async function DealDetailPage({
                           <span className="text-xs font-mono bg-emerald-500/10 text-emerald-600 px-2 py-0.5 rounded-full">
                             {parseFloat(opp.margin).toFixed(1)}% margin
                           </span>
+                        )}
+                        {opp.matchScore !== null && opp.matchScore !== undefined && (
+                          <span className="text-xs font-mono bg-secondary px-2 py-0.5 rounded-full text-muted-foreground">
+                            {opp.matchScore}% match
+                          </span>
+                        )}
+                        {opp.source === "auto_matched" && (
+                          <span className="text-xs text-muted-foreground/60">auto</span>
                         )}
                         <span className="text-xs text-muted-foreground">
                           {formatDate(opp.createdAt)}

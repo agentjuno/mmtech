@@ -167,6 +167,52 @@ async function seed() {
     .returning();
   console.log(`  Inserted ${insertedOpps.length} opportunities`);
 
+  // Seed buyer profiles for matching engine
+  const seedBuyers: schema.NewBuyerProfile[] = [
+    {
+      name: "SaaS Aggregator Fund",
+      categories: ["SaaS"],
+      maxBudget: "250000",
+      minMarginPct: "10",
+      notes: "Looking for profitable B2B SaaS with MRR > $5k. Quick close preferred.",
+    },
+    {
+      name: "Content Portfolio Buyer",
+      categories: ["Newsletter", "Content", "Affiliate", "Media"],
+      maxBudget: "150000",
+      minMarginPct: "12",
+      notes: "Operator with existing portfolio of content assets. Interested in newsletters and affiliate sites.",
+    },
+    {
+      name: "E-commerce Roll-up",
+      categories: ["E-commerce"],
+      maxBudget: "200000",
+      minMarginPct: "8",
+      notes: "E-commerce aggregator building a portfolio of DTC brands on Shopify.",
+    },
+    {
+      name: "Domain Investor Group",
+      categories: ["Domain"],
+      maxBudget: "100000",
+      minMarginPct: "15",
+      notes: "Actively buying premium domain portfolios with resale potential.",
+    },
+    {
+      name: "General Digital Asset Buyer",
+      categories: [],
+      maxBudget: "500000",
+      minMarginPct: "5",
+      notes: "Diversified buyer open to any digital asset with positive cash flow.",
+    },
+  ];
+
+  console.log("Seeding buyer profiles…");
+  const insertedBuyers = await db
+    .insert(schema.buyerProfiles)
+    .values(seedBuyers)
+    .returning();
+  console.log(`  Inserted ${insertedBuyers.length} buyer profiles`);
+
   console.log("Seed complete.");
 }
 
