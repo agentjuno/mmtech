@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "project": {
+    "initializedAt": "2026-04-04T11:41:23.152Z",
+    "merchantDisplayName": null,
+    "merchantId": "acct_1RNwSpBCPFprAisC",
+    "projectId": "project_61URqXCRKqrcqsgTm16SXKQB4XCQrzmkv2IPsKEGm7WS",
+    "projectName": "mmtech"
+  },
+  "providers": {
+    "neon": {
+      "accountRequestId": "facctrq_61URqYdjvSkUUli2Z16SXKQB4XCQrzmkv2IPsKEGmB2G",
+      "linkedAt": "2026-04-04T11:42:52.778Z",
+      "providerId": "prvdr_61UH8uNXFdoJUJOtT54AC",
+      "providerName": "Neon",
+      "redirectUrl": null,
+      "requestedAt": "2026-04-04T11:42:52.778Z",
+      "status": "complete"
+    }
+  },
+  "resources": {
+    "neon-postgres": {
+      "configuration": {},
+      "createdAt": "2026-04-04T11:42:54.840Z",
+      "lastRevealedAt": "2026-04-04T11:42:55.067Z",
+      "lastStatus": "complete",
+      "name": "neon-postgres",
+      "providerId": "prvdr_61UH8uNXFdoJUJOtT54AC",
+      "providerName": "Neon",
+      "resourceId": "fres_61URqYgqSoVmUAaPL16SXKQB4XCQrzmkv2IPsKEGm0ES",
+      "serviceId": "postgres"
+    }
+  }
+}
